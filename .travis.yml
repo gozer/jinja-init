@@ -1,12 +1,33 @@
-sudo: required
+language: minimal
+branches:
+  except:
+    - "/^flux-*/"
 services:
   - docker
-language: python
-python: 3.6
-env:
-  - TOX_ENV=py36
-  - TOX_ENV=pep8
-install:
-  - pip install tox
+before_script:
+  - SAFE_BRANCH_NAME=$(echo -n $TRAVIS_BRANCH | perl -pe's/[^a-zA-Z0-9_.-]/_/g' )
+  - REVISION_TAG="$SAFE_BRANCH_NAME-$TRAVIS_COMMIT"
+  - if [ "$TRAVIS_TAG" == "" ]; then SYMBOLIC_TAG="$SAFE_BRANCH_NAME-latest"; else SYMBOLIC_TAG="$TRAVIS_TAG"; fi
+  - echo "Branch $SAFE_BRANCH_NAME"
+  - echo "Tag $TRAVIS_TAG"
+  - if [ "$TRAVIS_TAG" == "" ]; then docker pull "$IMAGE_NAME:$SYMBOLIC_TAG" || true ; fi
+after_script:
+  - docker images
 script:
-  - tox -e $TOX_ENV
+  - docker build --build-arg=TAG=$TRAVIS_TAG --build-arg=REPO=$TRAVIS_REPO_SLUG --build-arg=COMMIT=$TRAVIS_COMMIT --build-arg=BRANCH=$TRAVIS_BRANCH --pull --cache-from "$IMAGE_NAME" --tag "$IMAGE_NAME" .
+
+before_deploy:
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - docker tag $IMAGE_NAME "$IMAGE_NAME:$REVISION_TAG"
+  - docker tag $IMAGE_NAME "$IMAGE_NAME:$SYMBOLIC_TAG"
+
+deploy:
+  provider: script
+  on:
+    all_branches: true
+    condition: $TRAVIS_TAG != "" || $TRAVIS_BRANCH =~ ^(master|prod)$
+  script: docker push "$IMAGE_NAME:$REVISION_TAG" && docker push "$IMAGE_NAME:$SYMBOLIC_TAG"
+
+env:
+  global:
+    - IMAGE_NAME=gozer/jinja-init
