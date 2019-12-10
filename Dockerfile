@@ -1,6 +1,9 @@
-FROM python:3.6
+FROM python:3.7
 
-RUN pip install jinja2
+MAINTAINER Philippe M. Chiasson <gozer@ectoplasm.org>
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 ADD run.py /run.py
 
 USER 1001

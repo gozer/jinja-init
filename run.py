@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from pathlib import Path
 
 import glob
 import os
@@ -22,11 +23,12 @@ import jinja2
 
 
 class Runner(object):
-    def __init__(self, src_file, dest_file, secrets_dir, verbose):
+    def __init__(self, src_file, dest_file, secrets_dir, verbose, recursive):
         self.src_file = src_file
         self.dest_file = dest_file
         self.secrets_dir = secrets_dir
         self.verbose = verbose
+        self.recursive = recursive
 
     def v_print(self, message):
         if self.verbose:
@@ -40,15 +42,20 @@ class Runner(object):
         j_env = {}
 
         # parse the secret files
-        secret_files = glob.glob(os.path.join(self.secrets_dir, '*'))
+        secret_files = glob.glob(os.path.join(self.secrets_dir, '**'), recursive=self.recursive)
         if not secret_files:
             self.v_print('No secret files found')
-        for secret_file in secret_files:
-            key = os.path.basename(secret_file)
-            with open(secret_file) as fd:
-                value = fd.read().strip()
-            j_env[key] = value
-            self.v_print('Read secret `%s`' % key)
+        else:
+            for secret_file in sorted(secret_files, key=lambda x: (os.path.dirname(x), os.path.basename(x))):
+                key = os.path.basename(secret_file)
+                try:
+                    with open(secret_file) as fd:
+                        value = fd.read().strip()
+
+                    j_env[key] = value
+                    self.v_print('Read secret `%s` from %s' % (key, secret_file))
+                except IOError as error:
+                    pass
 
         # parse the environment variables
         for k, v in os.environ.items():
@@ -69,5 +76,6 @@ if __name__ == "__main__":
         os.environ.get('JINJA_DEST_FILE', '/config/settings.py'),
         os.environ.get('JINJA_SECRETS_DIR', '/secrets'),
         os.environ.get('VERBOSE', False),
+        os.environ.get('RECURSIVE', False),
     )
     runner.run()
