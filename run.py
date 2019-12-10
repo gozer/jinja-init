@@ -14,8 +14,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from pathlib import Path
-
 import glob
 import os
 
@@ -35,47 +33,51 @@ class Runner(object):
             print(message)
 
     def run(self):
-        self.v_print('Source file: %s' % self.src_file)
-        self.v_print('Dest file: %s' % self.dest_file)
-        self.v_print('Secrets dir: %s' % self.secrets_dir)
+        self.v_print("Source file: %s" % self.src_file)
+        self.v_print("Dest file: %s" % self.dest_file)
+        self.v_print("Secrets dir: %s" % self.secrets_dir)
 
         j_env = {}
 
         # parse the secret files
-        secret_files = glob.glob(os.path.join(self.secrets_dir, '**'), recursive=self.recursive)
+        secret_files = glob.glob(
+            os.path.join(self.secrets_dir, "**"), recursive=self.recursive
+        )
         if not secret_files:
-            self.v_print('No secret files found')
+            self.v_print("No secret files found")
         else:
-            for secret_file in sorted(secret_files, key=lambda x: (os.path.dirname(x), os.path.basename(x))):
+            for secret_file in sorted(
+                secret_files, key=lambda x: (os.path.dirname(x), os.path.basename(x))
+            ):
                 key = os.path.basename(secret_file)
                 try:
                     with open(secret_file) as fd:
                         value = fd.read().strip()
 
                     j_env[key] = value
-                    self.v_print('Read secret `%s` from %s' % (key, secret_file))
-                except IOError as error:
+                    self.v_print("Read secret `%s` from %s" % (key, secret_file))
+                except IOError:
                     pass
 
         # parse the environment variables
         for k, v in os.environ.items():
-            if k.startswith('JINJA_VAR_'):
+            if k.startswith("JINJA_VAR_"):
                 j_env[k[10:]] = v
 
         with open(self.src_file) as fd:
             template_data = fd.read()
         template = jinja2.Template(template_data)
-        with open(self.dest_file, 'w') as fd:
+        with open(self.dest_file, "w") as fd:
             fd.write(template.render(**j_env))
-        self.v_print('Template rendered. Done')
+        self.v_print("Template rendered. Done")
 
 
 if __name__ == "__main__":
     runner = Runner(
-        os.environ.get('JINJA_SRC_FILE', '/config_src/template.j2'),
-        os.environ.get('JINJA_DEST_FILE', '/config/settings.py'),
-        os.environ.get('JINJA_SECRETS_DIR', '/secrets'),
-        os.environ.get('VERBOSE', False),
-        os.environ.get('RECURSIVE', False),
+        os.environ.get("JINJA_SRC_FILE", "/config_src/template.j2"),
+        os.environ.get("JINJA_DEST_FILE", "/config/settings.py"),
+        os.environ.get("JINJA_SECRETS_DIR", "/secrets"),
+        os.environ.get("VERBOSE", False),
+        os.environ.get("RECURSIVE", False),
     )
     runner.run()

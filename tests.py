@@ -21,21 +21,20 @@ class TestRunner(unittest.TestCase):
         self.dest_dir = tempfile.mkdtemp()
         self.secrets_dir = tempfile.mkdtemp()
 
-        self.src_file = os.path.join(self.src_dir, 'template.j2')
-        self.dest_file = os.path.join(self.dest_dir, 'output.cfg')
+        self.src_file = os.path.join(self.src_dir, "template.j2")
+        self.dest_file = os.path.join(self.dest_dir, "output.cfg")
 
-        with open(self.src_file, 'w') as fd:
+        with open(self.src_file, "w") as fd:
             fd.write(TEMPLATE)
-        with open(os.path.join(self.secrets_dir, 'foo'), 'w') as fd:
-            fd.write('FOO')
-        with open(os.path.join(self.secrets_dir, 'baz'), 'w') as fd:
-            fd.write('NOT FINAL BAZ')
+        with open(os.path.join(self.secrets_dir, "foo"), "w") as fd:
+            fd.write("FOO")
+        with open(os.path.join(self.secrets_dir, "baz"), "w") as fd:
+            fd.write("NOT FINAL BAZ")
 
-        os.environ['JINJA_VAR_bar'] = 'BAR'
-        os.environ['JINJA_VAR_baz'] = 'BAZ'
+        os.environ["JINJA_VAR_bar"] = "BAR"
+        os.environ["JINJA_VAR_baz"] = "BAZ"
 
-        self.runner = run.Runner(self.src_file, self.dest_file,
-                                 self.secrets_dir, False)
+        self.runner = run.Runner(self.src_file, self.dest_file, self.secrets_dir, False)
 
     def tearDown(self):
         shutil.rmtree(self.src_dir)
