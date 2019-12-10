@@ -1,33 +1,36 @@
 language: minimal
 branches:
   except:
-    - "/^flux-*/"
+  - "/^flux-*/"
 services:
-  - docker
+- docker
 before_script:
-  - SAFE_BRANCH_NAME=$(echo -n $TRAVIS_BRANCH | perl -pe's/[^a-zA-Z0-9_.-]/_/g' )
-  - REVISION_TAG="$SAFE_BRANCH_NAME-$TRAVIS_COMMIT"
-  - if [ "$TRAVIS_TAG" == "" ]; then SYMBOLIC_TAG="$SAFE_BRANCH_NAME-latest"; else SYMBOLIC_TAG="$TRAVIS_TAG"; fi
-  - echo "Branch $SAFE_BRANCH_NAME"
-  - echo "Tag $TRAVIS_TAG"
-  - if [ "$TRAVIS_TAG" == "" ]; then docker pull "$IMAGE_NAME:$SYMBOLIC_TAG" || true ; fi
+- SAFE_BRANCH_NAME=$(echo -n $TRAVIS_BRANCH | perl -pe's/[^a-zA-Z0-9_.-]/_/g' )
+- REVISION_TAG="$SAFE_BRANCH_NAME-$TRAVIS_COMMIT"
+- if [ "$TRAVIS_TAG" == "" ]; then SYMBOLIC_TAG="$SAFE_BRANCH_NAME-latest"; else SYMBOLIC_TAG="$TRAVIS_TAG";
+  fi
+- echo "Branch $SAFE_BRANCH_NAME"
+- echo "Tag $TRAVIS_TAG"
+- if [ "$TRAVIS_TAG" == "" ]; then docker pull "$IMAGE_NAME:$SYMBOLIC_TAG" || true
+  ; fi
 after_script:
-  - docker images
+- docker images
 script:
-  - docker build --build-arg=TAG=$TRAVIS_TAG --build-arg=REPO=$TRAVIS_REPO_SLUG --build-arg=COMMIT=$TRAVIS_COMMIT --build-arg=BRANCH=$TRAVIS_BRANCH --pull --cache-from "$IMAGE_NAME" --tag "$IMAGE_NAME" .
-
+- docker build --build-arg=TAG=$TRAVIS_TAG --build-arg=REPO=$TRAVIS_REPO_SLUG --build-arg=COMMIT=$TRAVIS_COMMIT
+  --build-arg=BRANCH=$TRAVIS_BRANCH --pull --cache-from "$IMAGE_NAME" --tag "$IMAGE_NAME"
+  .
 before_deploy:
-  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  - docker tag $IMAGE_NAME "$IMAGE_NAME:$REVISION_TAG"
-  - docker tag $IMAGE_NAME "$IMAGE_NAME:$SYMBOLIC_TAG"
-
+- echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+- docker tag $IMAGE_NAME "$IMAGE_NAME:$REVISION_TAG"
+- docker tag $IMAGE_NAME "$IMAGE_NAME:$SYMBOLIC_TAG"
 deploy:
   provider: script
   on:
     all_branches: true
     condition: $TRAVIS_TAG != "" || $TRAVIS_BRANCH =~ ^(master|prod)$
   script: docker push "$IMAGE_NAME:$REVISION_TAG" && docker push "$IMAGE_NAME:$SYMBOLIC_TAG"
-
 env:
   global:
-    - IMAGE_NAME=gozer/jinja-init
+  - IMAGE_NAME=gozer/jinja-init
+  - secure: GF5mHKUqvOMjAp0DZdA3YQyANY0vU+9/22FyvUPEcExK6zs5X9VzAwilhcQsbBAdceYhQzt8pOAyHreTtbAKuHtEcYnnP24gY/v+/UClxA33oi2TYxn3N6jOBZI1f5GtCNBUHnLavGb0+du+Qnql/88rpvrJtSY6F8GOW48427MfMaEy56Y1iXJal4cqyroWVSiYpMCG+aRvilucChZSNO/W8T+Zxq5KqR2RGqzmd45loCIfWtISYavmm/L6t2vkxzTQ9u0OkYPM0xhRs5iy5U3AmBKOIozDtW6Z3fYAahTYzyuHK1vB/X8GrlP60lKOUnXbV7MBpuOQ/jW5LWtTqIxUyWoLmw21EV1u0XeOR97VmYcIDp8MI+nUKgsn1CA7uo+xE0XAnzQL0tRrmbp2Y5AyfkKNj6IsyUc2S191Bd/s+LNg1pkNPLRc6RDxUsceKbTcleiol5AACuq1sZfGjUbDqMWjUcWaw7Gx8+O76204cGvX0mjkwr7RnkpK0TghT8woRHtNL+P1YODS/HvsOuXWJI1UFVYBOKK/ZMyeOLvPKVCu7iT0ZKLEXvM6yBVWwMQOfrBmh0JuKVnt7cjwWt5zhGnaeXc4mKnkpjq1KY3lM2iF16qjfSgsf35/aETcjgR3VLXmOhWztotA3lFyA75kj+IB2NA4470mjzm8Lv4=
+  - secure: dMDxck6BiTvOIr3P7heBrm/p0MFbsykvCxikyqdLvkVuxo8KxZMP5b7kcGY8hpZwePTu1anz+eC+0vOySZ6lkRGsdp5Hux3XTiQ7VOtY0oHQYDjyV/lJhdouZ9w29//JY2keWlTEf111c0BIkVw/NPaZEBurtN4Cm21DH+xvQ5xa/eqPLAcrEFeDLSoxcHeE8dRxlRcfp4cxKByYrFp+nwiicAC6WI+Op6gdJ+q4kPmvWsKV3aa8IxxY0sp/DVWclmz3mDdzFuUT4N0dYoBaO73U9WZto578sUdtEl7QSlNL2m2/zDHAPxkYqtgSbOwVhjtRpC/LRq8edoE9lPf/UavedxBA7egCUYw4I/tRwNo/QW57bz98Hf1hXFtFt4AV96W6rIIo00oFiIgZ7CHEopvKdZToDbqX/oYwa0QkyXJMrVxg6j7aJbgpN5RSTYg2bnZGw5PDRflF4hJp0o21CQn+MJZatElpQ09mPartyCr8b5owGlPZRxFgNqi6ENZFnrZ4eiN2ep8rqUIO/FYloPEAnO685BKaliGAApJqpkdKApTEXBeV5QS8RmGSkCmogwSwnN2FF3U0weeO673pFmcUviZ6LUIgoqDHZgNFhVqWowES1P0NkyXn0bv/kYsGzgVDJRtrsEO1aH1mCq32m/jUJdG4D7QZnDMNdRBEoEI=
